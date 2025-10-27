@@ -1,2 +1,2 @@
 # Multimedia-Project---Echoes-of-Noysia
-Echoes of Noysia
+Interactive Voice-Driven Game - Echoes of Noysia
