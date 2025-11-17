@@ -18,10 +18,19 @@
             <canvas id="gameCanvas" width="800" height="400"></canvas>
         </div>
 
-        <button type="button" class="btn btn-primary" id="startButton">Start Game</button>
+        <div id="hud" class="my-3">
+            <button type="button" class="btn btn-primary" id="startButton">Start Game</button>
+            <button type="button" class="btn btn-secondary" id="recalibButton">Recalibrate Microphone</button>
+            <span id="deathCounter" class="ms-3">Deaths: <strong id="deathCount">0</strong></span>
+            <button type="button" class="btn btn-warning ms-3" id="playAgainButton">Reset deaths</button>
+        </div>
 
-        <button type="button" class="btn btn-secondary" id="recalibButton">
-            Recalibrate Microphone</button>
+        <div id="winOverlay" style="display:none;">
+            <div id="winBox">
+                <h2 id="winText">You win!</h2>
+                <button id="overlayPlayAgain" class="btn btn-success">Play Again</button>
+            </div>
+        </div>
     </div>
 
     <script src="scripts/game.js"></script>

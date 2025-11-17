@@ -1,6 +1,26 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// HUD & controls
+let deathCount = 0;
+const deathCounterElement = document.getElementById('deathCount');
+const playAgainButton = document.getElementById('playAgainButton');
+const winOverlay = document.getElementById('winOverlay');
+const overlayPlayAgain = document.getElementById('overlayPlayAgain');
+const startButton = document.getElementById('startButton');
+// Start paused; pressing Start Game will unpause and trigger initial flash
+let gamePaused = true;
+let started = false;
+let nextLevelIndex = null;
+
+function updateHUD() {
+    if (deathCounterElement) deathCounterElement.innerText = deathCount;
+}
+
+// initialize HUD display
+updateHUD();
+
+
 // Player
 const player = {
     x: 50,
@@ -12,10 +32,19 @@ const player = {
     startY: canvas.height - 50
 };
 
+// Respawn/flash settings
+player.respawnedAt = 0; // timestamp when player was moved to start
+player.respawnFlashDuration = 2000; // ms to flash after respawn
+player.respawnFlashInterval = 150; // ms per flash toggle
 // Enemy properties
 const enemySize = 40;
 const revealRadius = 100;
 const revealTime = 3000;
+
+// Spawn / goal area visuals
+const spawnAreaSize = 80; // square size in px
+const spawnAreaColor = 'rgba(0, 123, 255, 0.25)'; // blue-ish
+const goalAreaColor = 'rgba(255, 193, 7, 0.25)'; // yellow-ish
 
 // Levels setup with positions, movement, visibility
 const levels = [
@@ -124,7 +153,8 @@ const levels = [
 
 // Random starting level
 let currentLevel = Math.floor(Math.random() * levels.length);
-let enemies = levels[currentLevel];
+// Use a deep copy so original level definitions remain unchanged when enemies move
+let enemies = JSON.parse(JSON.stringify(levels[currentLevel]));
 
 // Goal (flag image)
 const goalImage = new Image();
@@ -136,15 +166,38 @@ function draw() {
     ctx.fillStyle = '#333';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Player
+    const now = Date.now();
+
+    // Draw spawn area square behind the player start
+    const spawnX = player.startX - spawnAreaSize / 2;
+    const spawnY = player.startY - spawnAreaSize / 2;
+    ctx.fillStyle = spawnAreaColor;
+    ctx.fillRect(spawnX, spawnY, spawnAreaSize, spawnAreaSize);
+
+    // Draw goal area square behind the goal
+    const goalPad = 6;
+    ctx.fillStyle = goalAreaColor;
+    ctx.fillRect(goal.x - goalPad, goal.y - goalPad, goal.width + goalPad * 2, goal.height + goalPad * 2);
+
+    // Player (with respawn flash)
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = player.color;
+    // determine fill color based on respawn flash state
+    let fillColor = player.color;
+    if (player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration) {
+        const elapsed = now - player.respawnedAt;
+        const phase = Math.floor(elapsed / player.respawnFlashInterval) % 2;
+        if (phase === 0) {
+            fillColor = '#4caf50'; // green when flashing on
+        } else {
+            fillColor = player.color; // original color when flashing off
+        }
+    }
+    ctx.fillStyle = fillColor;
     ctx.fill();
     ctx.closePath();
 
     // Enemies
-    const now = Date.now();
     enemies.forEach(enemy => {
         const dx = player.x - (enemy.x + enemySize / 2);
         const dy = player.y - (enemy.y + enemySize / 2);
@@ -178,36 +231,56 @@ function updateEnemies() {
 
 // Collision detection
 function checkCollisions() {
+    const now = Date.now();
+    const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
     for (let enemy of enemies) {
+        // If player is flashing after respawn, they are temporarily immune
+        if (invincible) continue;
         if (
             player.x + player.radius > enemy.x &&
             player.x - player.radius < enemy.x + enemySize &&
             player.y + player.radius > enemy.y &&
             player.y - player.radius < enemy.y + enemySize
         ) {
+            // Increment death counter and reset player to start
+            deathCount++;
+            updateHUD();
             player.x = player.startX;
             player.y = player.startY;
+            player.respawnedAt = Date.now();
         }
     }
 
-    // Goal reached
+    // Goal reached - show win overlay and pause, advance after player clicks overlay Play Again
     if (
         player.x + player.radius > goal.x &&
         player.x - player.radius < goal.x + goal.width &&
         player.y + player.radius > goal.y &&
         player.y - player.radius < goal.y + goal.height
     ) {
-        alert(`Level ${currentLevel + 1} Complete!`);
-        currentLevel++;
-        if (currentLevel >= levels.length) currentLevel = 0;
-        enemies = levels[currentLevel];
-        player.x = player.startX;
-        player.y = player.startY;
+        // Prepare next level index
+        nextLevelIndex = currentLevel + 1;
+        if (nextLevelIndex >= levels.length) nextLevelIndex = 0;
+        // Show overlay
+        if (winOverlay) winOverlay.style.display = 'flex';
+        gamePaused = true;
     }
+}
+
+// Reset to a level (deep copy enemy definitions) and reset player position
+function resetLevel(levelIndex) {
+    currentLevel = levelIndex;
+    enemies = JSON.parse(JSON.stringify(levels[currentLevel]));
+    player.x = player.startX;
+    player.y = player.startY;
+    // show respawn flash when resetting level
+    player.respawnedAt = Date.now();
 }
 
 // Player movement
 document.addEventListener('keydown', (e) => {
+    // Ignore movement input while game is paused
+    if (gamePaused) return;
     switch (e.key) {
         case 'ArrowLeft': player.x = Math.max(player.radius, player.x - player.speed); break;
         case 'ArrowRight': player.x = Math.min(canvas.width - player.radius, player.x + player.speed); break;
@@ -218,11 +291,56 @@ document.addEventListener('keydown', (e) => {
 
 // Animation loop
 function animate() {
-    updateEnemies();
+    // Always draw the current frame so canvas stays visible while paused
     draw();
-    checkCollisions();
+    if (!gamePaused) {
+        updateEnemies();
+        checkCollisions();
+    }
     requestAnimationFrame(animate);
 }
 
 // Ensure flag image loads first
 goalImage.onload = animate;
+
+// Wire up HUD Reset Level button
+if (playAgainButton) {
+    playAgainButton.addEventListener('click', () => {
+        resetLevel(currentLevel);
+        updateHUD();
+    });
+}
+
+// Wire up Start Game button: toggle pause/unpause and update label
+if (startButton) {
+    startButton.addEventListener('click', () => {
+        if (gamePaused) {
+                // unpause: hide overlay and resume
+                if (winOverlay) winOverlay.style.display = 'none';
+                // If this is the first time starting the game, trigger initial respawn flash + immunity
+                if (!started) {
+                    player.respawnedAt = Date.now();
+                    started = true;
+                }
+                gamePaused = false;
+                startButton.innerText = 'Pause';
+            } else {
+            // pause the game
+            gamePaused = true;
+            startButton.innerText = 'Resume';
+        }
+        updateHUD();
+    });
+}
+
+// Wire up overlay Play Again button (advance to next level, keep death count)
+if (overlayPlayAgain) {
+    overlayPlayAgain.addEventListener('click', () => {
+        if (winOverlay) winOverlay.style.display = 'none';
+        const target = (nextLevelIndex !== null) ? nextLevelIndex : ((currentLevel + 1) % levels.length);
+        resetLevel(target);
+        gamePaused = false;
+        if (startButton) startButton.innerText = 'Pause';
+        updateHUD();
+    });
+}
