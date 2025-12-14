@@ -334,10 +334,10 @@ function animate() {
 // Ensure flag image loads first
 goalImage.onload = animate;
 
-// Wire up HUD Reset Level button
+// Wire up HUD Reset deaths button
 if (playAgainButton) {
     playAgainButton.addEventListener('click', () => {
-        resetLevel(currentLevel);
+        deathCount = 0;
         updateHUD();
     });
 }
