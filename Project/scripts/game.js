@@ -18,12 +18,23 @@ const deathSound = new Audio('./assets/death.mp3');
 deathSound.preload = 'auto';
 deathSound.volume = 0.6;
 
+// audio controls
+let soundEnabled = true;
+const victorySound = new Audio('./assets/victory.mp3');
+victorySound.preload = 'auto';
+victorySound.volume = 0.9;
+const soundToggleButton = document.getElementById('soundToggleButton');
+let victoryPlayed = false;
+
 function updateHUD() {
     if (deathCounterElement) deathCounterElement.innerText = deathCount;
 }
 
 // initialize HUD display
 updateHUD();
+
+// Initialize sound toggle label
+if (soundToggleButton) soundToggleButton.innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
 
 
 // Player
@@ -251,7 +262,7 @@ function checkCollisions() {
             deathCount++;
             updateHUD();
             // play death sound (safe: ignore promise rejections)
-            if (deathSound && typeof deathSound.play === 'function') {
+            if (soundEnabled && deathSound && typeof deathSound.play === 'function') {
                 try {
                     deathSound.currentTime = 0;
                     deathSound.play().catch(() => {});
@@ -265,7 +276,7 @@ function checkCollisions() {
         }
     }
 
-    // Goal reached - show win overlay and pause, advance after player clicks overlay Play Again
+    // Goal reached - show win overlay and pause, advance after player clicks overlay Play again
     if (
         player.x + player.radius > goal.x &&
         player.x - player.radius < goal.x + goal.width &&
@@ -277,6 +288,16 @@ function checkCollisions() {
         if (nextLevelIndex >= levels.length) nextLevelIndex = 0;
         // Show overlay
         if (winOverlay) winOverlay.style.display = 'flex';
+        // play victory sound
+        if (!victoryPlayed && soundEnabled && victorySound && typeof victorySound.play === 'function') {
+            try {
+                victorySound.currentTime = 0;
+                victorySound.play().catch(() => {});
+            } catch (e) {
+                // ignore
+            }
+        }
+        victoryPlayed = true;
         gamePaused = true;
     }
 }
@@ -289,6 +310,8 @@ function resetLevel(levelIndex) {
     player.y = player.startY;
     // show respawn flash when resetting level
     player.respawnedAt = Date.now();
+    // allow victory sound to play again on this new level
+    victoryPlayed = false;
 }
 
 // Player movement
@@ -364,7 +387,7 @@ if (startButton) {
     });
 }
 
-// Wire up overlay Play Again button (advance to next level, keep death count)
+// Wire up overlay Play again button (advance to next level, keep death count)
 if (overlayPlayAgain) {
     overlayPlayAgain.addEventListener('click', () => {
         if (winOverlay) winOverlay.style.display = 'none';
@@ -372,6 +395,15 @@ if (overlayPlayAgain) {
         resetLevel(target);
         gamePaused = false;
         if (startButton) startButton.innerText = 'Pause';
+        victoryPlayed = false;
         updateHUD();
+    });
+}
+
+// Wire up sound toggle button
+if (soundToggleButton) {
+    soundToggleButton.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundToggleButton.innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
     });
 }

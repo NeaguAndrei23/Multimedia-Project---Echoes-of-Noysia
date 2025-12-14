@@ -61,6 +61,11 @@ body {
     font-size: 16px;
 }
 
+#soundToggleButton {
+    padding: 8px 14px;
+    font-size: 14px;
+}
+
 /* Win overlay styles */
 #winOverlay {
     position: fixed;
