@@ -9,6 +9,8 @@ const resetLevelButton = document.getElementById('resetLevelButton');
 const winOverlay = document.getElementById('winOverlay');
 const overlayPlayAgain = document.getElementById('overlayPlayAgain');
 const startButton = document.getElementById('startButton');
+const pauseOverlay = document.getElementById('pauseOverlay');
+const resumeButton = document.getElementById('resumeButton');
 // Start paused; pressing Start Game will unpause and trigger initial flash
 let gamePaused = true;
 let started = false;
@@ -26,6 +28,46 @@ victorySound.preload = 'auto';
 victorySound.volume = 0.9;
 const soundToggleButton = document.getElementById('soundToggleButton');
 let victoryPlayed = false;
+const toastElement = document.getElementById('toast');
+let toastTimeout = null;
+
+function showToast(message, duration = 2000) {
+    if (!toastElement) return;
+    toastElement.innerText = message;
+    toastElement.style.display = 'block';
+    // debounce animation
+    toastElement.classList.remove('show');
+    // force reflow
+    void toastElement.offsetWidth;
+    toastElement.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toastElement.classList.remove('show');
+        // keep for animation duration then hide
+        setTimeout(() => {
+            if (toastElement) toastElement.style.display = 'none';
+        }, 200);
+    }, duration);
+}
+
+// Helper to set paused state and show/hide pause overlay (don't show pause overlay if win overlay is visible)
+function setPaused(paused) {
+    gamePaused = paused;
+    if (paused) {
+        if (winOverlay && winOverlay.style.display === 'flex') {
+            if (pauseOverlay) pauseOverlay.style.display = 'none';
+        } else {
+            // Only show pause overlay when the game has actually started
+            if (started) {
+                if (pauseOverlay) pauseOverlay.style.display = 'flex';
+            } else {
+                if (pauseOverlay) pauseOverlay.style.display = 'none';
+            }
+        }
+    } else {
+        if (pauseOverlay) pauseOverlay.style.display = 'none';
+    }
+}
 
 function updateHUD() {
     if (deathCounterElement) deathCounterElement.innerText = deathCount;
@@ -36,6 +78,9 @@ updateHUD();
 
 // Initialize sound toggle label
 if (soundToggleButton) soundToggleButton.innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
+
+// Ensure initial pause overlay if starting paused
+setPaused(gamePaused);
 
 
 // Player
@@ -299,7 +344,7 @@ function checkCollisions() {
             }
         }
         victoryPlayed = true;
-        gamePaused = true;
+        setPaused(true);
     }
 }
 
@@ -309,14 +354,50 @@ function resetLevel(levelIndex) {
     enemies = JSON.parse(JSON.stringify(levels[currentLevel]));
     player.x = player.startX;
     player.y = player.startY;
-    // show respawn flash when resetting level
-    player.respawnedAt = Date.now();
     // allow victory sound to play again on this new level
     victoryPlayed = false;
 }
 
 // Player movement
 document.addEventListener('keydown', (e) => {
+    // Allow Escape to toggle pause/unpause only if the game has started
+    if (e.key === 'Escape' || e.code === 'Escape') {
+        e.preventDefault();
+        // If the game hasn't been started by the Start button yet, ignore Escape
+        if (!started) return;
+
+        if (gamePaused) {
+            // Unpause
+            if (winOverlay) winOverlay.style.display = 'none';
+            setPaused(false);
+            if (startButton) startButton.innerText = 'Pause';
+        } else {
+            // Pause
+            setPaused(true);
+            if (startButton) startButton.innerText = 'Resume';
+        }
+        updateHUD();
+        return;
+    }
+
+    // If win overlay is shown, allow Enter/Space to trigger Play again
+    if (winOverlay && winOverlay.style.display === 'flex') {
+        if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space' || e.key === 'Spacebar') {
+            e.preventDefault();
+            if (overlayPlayAgain) overlayPlayAgain.click();
+        }
+        return;
+    }
+    // If the game isn't started yet, allow Enter/Space to start it
+    if (!started && (e.key === 'Enter' || e.key === ' ' || e.code === 'Space' || e.key === 'Spacebar')) {
+        e.preventDefault();
+        player.respawnedAt = Date.now();
+        started = true;
+        setPaused(false);
+        if (startButton) startButton.innerText = 'Pause';
+        updateHUD();
+        return;
+    }
     // Ignore movement input while game is paused
     if (gamePaused) return;
 
@@ -397,11 +478,11 @@ if (startButton) {
                     player.respawnedAt = Date.now();
                     started = true;
                 }
-                gamePaused = false;
+                setPaused(false);
                 startButton.innerText = 'Pause';
             } else {
             // pause the game
-            gamePaused = true;
+            setPaused(true);
             startButton.innerText = 'Resume';
         }
         updateHUD();
@@ -414,7 +495,10 @@ if (overlayPlayAgain) {
         if (winOverlay) winOverlay.style.display = 'none';
         const target = (nextLevelIndex !== null) ? nextLevelIndex : ((currentLevel + 1) % levels.length);
         resetLevel(target);
-        gamePaused = false;
+        // Start the level: mark as started and show respawn flash
+        started = true;
+        player.respawnedAt = Date.now();
+        setPaused(false);
         if (startButton) startButton.innerText = 'Pause';
         victoryPlayed = false;
         updateHUD();
@@ -435,9 +519,26 @@ if (resetLevelButton) {
         // Reset the current level only; do not reset death count
         if (winOverlay) winOverlay.style.display = 'none';
         resetLevel(currentLevel);
-        gamePaused = false;
-        if (startButton) startButton.innerText = 'Pause';
+        // Ensure the game is paused and not in 'started' state
+        // Make the game not started and ensure overlays are hidden
+        started = false;
+        setPaused(false);
+        if (startButton) startButton.innerText = 'Start Game';
+        // Cancel any respawn flash set earlier
+        player.respawnedAt = 0;
         victoryPlayed = false;
+        // Show brief toast message confirming the reset
+        showToast('Level reset', 1500);
+        updateHUD();
+    });
+}
+
+// Wire up pause overlay resume button
+if (resumeButton) {
+    resumeButton.addEventListener('click', () => {
+        if (!started) { player.respawnedAt = Date.now(); started = true; }
+        setPaused(false);
+        if (startButton) startButton.innerText = 'Pause';
         updateHUD();
     });
 }

@@ -33,6 +33,14 @@
                 <button id="overlayPlayAgain" class="btn btn-success">Play again</button>
             </div>
         </div>
+        <div id="pauseOverlay" style="display:none;">
+            <div id="pauseBox">
+                <h2 id="pauseText">Paused</h2>
+                <p class="mb-2">Press Esc or click Resume to continue</p>
+                <button id="resumeButton" class="btn btn-primary">Resume</button>
+            </div>
+        </div>
+        <div id="toast" style="display:none;" aria-live="polite"></div>
     </div>
 
     <script src="scripts/game.js"></script>
