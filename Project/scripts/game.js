@@ -13,6 +13,11 @@ let gamePaused = true;
 let started = false;
 let nextLevelIndex = null;
 
+// Audio
+const deathSound = new Audio('./assets/death.mp3');
+deathSound.preload = 'auto';
+deathSound.volume = 0.6;
+
 function updateHUD() {
     if (deathCounterElement) deathCounterElement.innerText = deathCount;
 }
@@ -245,6 +250,15 @@ function checkCollisions() {
             // Increment death counter and reset player to start
             deathCount++;
             updateHUD();
+            // play death sound (safe: ignore promise rejections)
+            if (deathSound && typeof deathSound.play === 'function') {
+                try {
+                    deathSound.currentTime = 0;
+                    deathSound.play().catch(() => {});
+                } catch (e) {
+                    // ignore play error
+                }
+            }
             player.x = player.startX;
             player.y = player.startY;
             player.respawnedAt = Date.now();
@@ -281,11 +295,28 @@ function resetLevel(levelIndex) {
 document.addEventListener('keydown', (e) => {
     // Ignore movement input while game is paused
     if (gamePaused) return;
+
+    const now = Date.now();
+    const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
+
+    // Default bounds are the canvas edges
+    let minX = player.radius;
+    let maxX = canvas.width - player.radius;
+    let minY = player.radius;
+    let maxY = canvas.height - player.radius;
+    if (invincible) {
+        // Restrict movement to spawn area when immune
+        minX = player.startX - spawnAreaSize / 2 + player.radius;
+        maxX = player.startX + spawnAreaSize / 2 - player.radius;
+        minY = player.startY - spawnAreaSize / 2 + player.radius;
+        maxY = player.startY + spawnAreaSize / 2 - player.radius;
+    }
+
     switch (e.key) {
-        case 'ArrowLeft': player.x = Math.max(player.radius, player.x - player.speed); break;
-        case 'ArrowRight': player.x = Math.min(canvas.width - player.radius, player.x + player.speed); break;
-        case 'ArrowUp': player.y = Math.max(player.radius, player.y - player.speed); break;
-        case 'ArrowDown': player.y = Math.min(canvas.height - player.radius, player.y + player.speed); break;
+        case 'ArrowLeft': player.x = Math.max(minX, player.x - player.speed); break;
+        case 'ArrowRight': player.x = Math.min(maxX, player.x + player.speed); break;
+        case 'ArrowUp': player.y = Math.max(minY, player.y - player.speed); break;
+        case 'ArrowDown': player.y = Math.min(maxY, player.y + player.speed); break;
     }
 });
 
