@@ -5,6 +5,7 @@ const ctx = canvas.getContext('2d');
 let deathCount = 0;
 const deathCounterElement = document.getElementById('deathCount');
 const playAgainButton = document.getElementById('playAgainButton');
+const resetLevelButton = document.getElementById('resetLevelButton');
 const winOverlay = document.getElementById('winOverlay');
 const overlayPlayAgain = document.getElementById('overlayPlayAgain');
 const startButton = document.getElementById('startButton');
@@ -336,10 +337,30 @@ document.addEventListener('keydown', (e) => {
     }
 
     switch (e.key) {
-        case 'ArrowLeft': player.x = Math.max(minX, player.x - player.speed); break;
-        case 'ArrowRight': player.x = Math.min(maxX, player.x + player.speed); break;
-        case 'ArrowUp': player.y = Math.max(minY, player.y - player.speed); break;
-        case 'ArrowDown': player.y = Math.min(maxY, player.y + player.speed); break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            e.preventDefault();
+            player.x = Math.max(minX, player.x - player.speed);
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            e.preventDefault();
+            player.x = Math.min(maxX, player.x + player.speed);
+            break;
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+            e.preventDefault();
+            player.y = Math.max(minY, player.y - player.speed);
+            break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+            e.preventDefault();
+            player.y = Math.min(maxY, player.y + player.speed);
+            break;
     }
 });
 
@@ -405,5 +426,18 @@ if (soundToggleButton) {
     soundToggleButton.addEventListener('click', () => {
         soundEnabled = !soundEnabled;
         soundToggleButton.innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
+    });
+}
+
+// Wire up HUD Reset level button
+if (resetLevelButton) {
+    resetLevelButton.addEventListener('click', () => {
+        // Reset the current level only; do not reset death count
+        if (winOverlay) winOverlay.style.display = 'none';
+        resetLevel(currentLevel);
+        gamePaused = false;
+        if (startButton) startButton.innerText = 'Pause';
+        victoryPlayed = false;
+        updateHUD();
     });
 }

@@ -56,9 +56,11 @@ body {
     font-size: 18px;
 }
 
-#playAgainButton {
+#playAgainButton,
+#resetLevelButton {
     padding: 8px 16px;
     font-size: 16px;
+    min-width: 120px;
 }
 
 #soundToggleButton {
