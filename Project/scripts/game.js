@@ -89,7 +89,7 @@ const player = {
     y: canvas.height - 50,
     radius: 25,
     color: '#ffcc00',
-    speed: 2,
+    speed: 1.75,
     startX: 50,
     startY: canvas.height - 50
 };
@@ -523,7 +523,7 @@ if (playAgainButton) {
 // Wire up Start Game button: toggle pause/unpause and update label
 if (startButton) {
     startButton.addEventListener('click', () => {
-        if (gamePaused) {
+        if (!started || gamePaused) {
                 // unpause: hide overlay and resume
                 if (winOverlay) winOverlay.style.display = 'none';
                 // If this is the first time starting the game, trigger initial respawn flash + immunity
