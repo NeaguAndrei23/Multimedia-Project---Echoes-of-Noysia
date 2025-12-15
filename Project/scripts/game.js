@@ -89,9 +89,17 @@ const player = {
     y: canvas.height - 50,
     radius: 25,
     color: '#ffcc00',
-    speed: 6,
+    speed: 2,
     startX: 50,
     startY: canvas.height - 50
+};
+
+// Track which keys are currently pressed
+const keys = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
 };
 
 // Respawn/flash settings
@@ -358,7 +366,7 @@ function resetLevel(levelIndex) {
     victoryPlayed = false;
 }
 
-// Player movement
+// Keyboard input handlers
 document.addEventListener('keydown', (e) => {
     // Allow Escape to toggle pause/unpause only if the game has started
     if (e.key === 'Escape' || e.code === 'Escape') {
@@ -398,8 +406,65 @@ document.addEventListener('keydown', (e) => {
         updateHUD();
         return;
     }
-    // Ignore movement input while game is paused
-    if (gamePaused) return;
+
+    // Track movement keys
+    switch (e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            e.preventDefault();
+            keys.left = true;
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            e.preventDefault();
+            keys.right = true;
+            break;
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+            e.preventDefault();
+            keys.up = true;
+            break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+            e.preventDefault();
+            keys.down = true;
+            break;
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    // Release movement keys
+    switch (e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            keys.left = false;
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            keys.right = false;
+            break;
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+            keys.up = false;
+            break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+            keys.down = false;
+            break;
+    }
+});
+
+// Update player position based on held keys
+function updatePlayerMovement() {
+    if (gamePaused || !started) return;
 
     const now = Date.now();
     const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
@@ -417,39 +482,27 @@ document.addEventListener('keydown', (e) => {
         maxY = player.startY + spawnAreaSize / 2 - player.radius;
     }
 
-    switch (e.key) {
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-            e.preventDefault();
-            player.x = Math.max(minX, player.x - player.speed);
-            break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-            e.preventDefault();
-            player.x = Math.min(maxX, player.x + player.speed);
-            break;
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-            e.preventDefault();
-            player.y = Math.max(minY, player.y - player.speed);
-            break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-            e.preventDefault();
-            player.y = Math.min(maxY, player.y + player.speed);
-            break;
+    // Apply movement based on held keys
+    if (keys.left) {
+        player.x = Math.max(minX, player.x - player.speed);
     }
-});
+    if (keys.right) {
+        player.x = Math.min(maxX, player.x + player.speed);
+    }
+    if (keys.up) {
+        player.y = Math.max(minY, player.y - player.speed);
+    }
+    if (keys.down) {
+        player.y = Math.min(maxY, player.y + player.speed);
+    }
+}
 
 // Animation loop
 function animate() {
     // Always draw the current frame so canvas stays visible while paused
     draw();
     if (!gamePaused) {
+        updatePlayerMovement();
         updateEnemies();
         checkCollisions();
     }
