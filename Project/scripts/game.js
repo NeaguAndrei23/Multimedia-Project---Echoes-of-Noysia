@@ -268,6 +268,7 @@ function draw() {
     ctx.closePath();
 
     // Enemies
+    const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
     enemies.forEach(enemy => {
         const dx = player.x - (enemy.x + enemySize / 2);
         const dy = player.y - (enemy.y + enemySize / 2);
@@ -278,7 +279,8 @@ function draw() {
             enemy.lastRevealed = now;
         }
 
-        if (enemy.visible && now - enemy.lastRevealed <= revealTime) {
+        // Draw enemy if visible within reveal time OR if player is invincible
+        if ((enemy.visible && now - enemy.lastRevealed <= revealTime) || invincible) {
             ctx.fillStyle = 'red';
             ctx.fillRect(enemy.x, enemy.y, enemySize, enemySize);
         }
@@ -290,12 +292,69 @@ function draw() {
 
 // Update enemy positions
 function updateEnemies() {
+    // Define spawn area boundaries
+    const spawnLeft = player.startX - spawnAreaSize / 2;
+    const spawnRight = player.startX + spawnAreaSize / 2;
+    const spawnTop = player.startY - spawnAreaSize / 2;
+    const spawnBottom = player.startY + spawnAreaSize / 2;
+
     enemies.forEach(enemy => {
+        // Store old position for collision resolution
+        const oldX = enemy.x;
+        const oldY = enemy.y;
+
+        // Move enemy
         enemy.x += enemy.vx;
         enemy.y += enemy.vy;
 
-        if (enemy.x < 0 || enemy.x + enemySize > canvas.width) enemy.vx *= -1;
-        if (enemy.y < 0 || enemy.y + enemySize > canvas.height) enemy.vy *= -1;
+        // Check canvas boundary collisions
+        if (enemy.x < 0 || enemy.x + enemySize > canvas.width) {
+            enemy.vx *= -1;
+            enemy.x = oldX; // Reset to old position to prevent getting stuck
+        }
+        if (enemy.y < 0 || enemy.y + enemySize > canvas.height) {
+            enemy.vy *= -1;
+            enemy.y = oldY; // Reset to old position to prevent getting stuck
+        }
+
+        // Check spawn area collision (AABB collision detection)
+        const enemyLeft = enemy.x;
+        const enemyRight = enemy.x + enemySize;
+        const enemyTop = enemy.y;
+        const enemyBottom = enemy.y + enemySize;
+
+        // Check if enemy overlaps with spawn area
+        if (enemyRight > spawnLeft && enemyLeft < spawnRight &&
+            enemyBottom > spawnTop && enemyTop < spawnBottom) {
+
+            // Calculate overlap on each side
+            const overlapLeft = enemyRight - spawnLeft;
+            const overlapRight = spawnRight - enemyLeft;
+            const overlapTop = enemyBottom - spawnTop;
+            const overlapBottom = spawnBottom - enemyTop;
+
+            // Find the minimum overlap (which side is closest)
+            const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+            // Push enemy out on the side with minimum overlap and reverse velocity
+            if (minOverlap === overlapLeft) {
+                // Enemy hit from left side of spawn area
+                enemy.x = spawnLeft - enemySize;
+                enemy.vx = -Math.abs(enemy.vx); // Move left
+            } else if (minOverlap === overlapRight) {
+                // Enemy hit from right side of spawn area
+                enemy.x = spawnRight;
+                enemy.vx = Math.abs(enemy.vx); // Move right
+            } else if (minOverlap === overlapTop) {
+                // Enemy hit from top side of spawn area
+                enemy.y = spawnTop - enemySize;
+                enemy.vy = -Math.abs(enemy.vy); // Move up
+            } else {
+                // Enemy hit from bottom side of spawn area
+                enemy.y = spawnBottom;
+                enemy.vy = Math.abs(enemy.vy); // Move down
+            }
+        }
     });
 }
 
