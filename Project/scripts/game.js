@@ -231,6 +231,17 @@ const goalImage = new Image();
 goalImage.src = 'assets/flag.png';
 const goal = { x: canvas.width - 70, y: 20, width: 50, height: 50 };
 
+// Enemy sprites (saw blades) - oscillate between two frames for animation
+const enemySprite1 = new Image();
+const enemySprite2 = new Image();
+// For now, we'll use placeholder paths - you'll replace these with your actual saw sprites
+enemySprite1.src = 'assets/saw1.png';
+enemySprite2.src = 'assets/saw2.png';
+
+// Animation settings for enemy sprite oscillation
+const enemySpriteAnimationSpeed = 150; // ms per frame (faster = more spinning effect)
+let enemySpriteFrame = 0; // Track which frame to show (0 or 1)
+
 // Draw everything
 function draw() {
     ctx.fillStyle = '#333';
@@ -269,6 +280,11 @@ function draw() {
 
     // Enemies
     const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
+
+    // Update animation frame for sprite oscillation
+    const spritePhase = Math.floor(now / enemySpriteAnimationSpeed) % 2;
+    const currentEnemySprite = spritePhase === 0 ? enemySprite1 : enemySprite2;
+
     enemies.forEach(enemy => {
         const dx = player.x - (enemy.x + enemySize / 2);
         const dy = player.y - (enemy.y + enemySize / 2);
@@ -281,8 +297,14 @@ function draw() {
 
         // Draw enemy if visible within reveal time OR if player is invincible
         if ((enemy.visible && now - enemy.lastRevealed <= revealTime) || invincible) {
-            ctx.fillStyle = 'red';
-            ctx.fillRect(enemy.x, enemy.y, enemySize, enemySize);
+            // Try to draw sprite, fallback to red rectangle if sprites not loaded
+            if (currentEnemySprite.complete && currentEnemySprite.naturalWidth > 0) {
+                ctx.drawImage(currentEnemySprite, enemy.x, enemy.y, enemySize, enemySize);
+            } else {
+                // Fallback: draw red rectangle if sprites aren't loaded yet
+                ctx.fillStyle = 'red';
+                ctx.fillRect(enemy.x, enemy.y, enemySize, enemySize);
+            }
         }
     });
 
