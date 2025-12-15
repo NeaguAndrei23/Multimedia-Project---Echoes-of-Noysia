@@ -11,6 +11,7 @@ const overlayPlayAgain = document.getElementById('overlayPlayAgain');
 const startButton = document.getElementById('startButton');
 const pauseOverlay = document.getElementById('pauseOverlay');
 const resumeButton = document.getElementById('resumeButton');
+const recalibButton = document.getElementById('recalibButton');
 // Start paused; pressing Start Game will unpause and trigger initial flash
 let gamePaused = true;
 let started = false;
@@ -25,11 +26,26 @@ deathSound.volume = 0.6;
 let soundEnabled = true;
 const victorySound = new Audio('./assets/victory.mp3');
 victorySound.preload = 'auto';
-victorySound.volume = 0.9;
+victorySound.volume = 0.4;
 const soundToggleButton = document.getElementById('soundToggleButton');
 let victoryPlayed = false;
 const toastElement = document.getElementById('toast');
 let toastTimeout = null;
+
+// Microphone / Sound Wave settings
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let micEnabled = false;
+let volumeThreshold = 80; // Adjust this based on testing (0-100 scale) - raised to avoid triggering on breaths
+
+// Sound wave animation state
+let soundWaveActive = false;
+let soundWaveStartTime = 0;
+let soundWaveDuration = 1500; // 1.5 second animation (slower expansion)
+let soundWaveCooldown = 1500; // 1.5 second cooldown
+let soundWaveLastUsed = 0;
+let soundWaveMaxRadius = 200; // Maximum radius of the sound wave (smaller area)
 
 function showToast(message, duration = 2000) {
     if (!toastElement) return;
@@ -48,6 +64,103 @@ function showToast(message, duration = 2000) {
             if (toastElement) toastElement.style.display = 'none';
         }, 200);
     }, duration);
+}
+
+// Initialize microphone access
+async function initMicrophone() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+
+        analyser.fftSize = 256;
+        microphone.connect(analyser);
+
+        micEnabled = true;
+        showToast('Microphone enabled! Speak to reveal enemies', 2000);
+
+        // Start monitoring volume
+        monitorVolume();
+    } catch (error) {
+        console.error('Microphone access denied:', error);
+        showToast('Microphone access denied. Please allow microphone access.', 3000);
+        micEnabled = false;
+    }
+}
+
+// Monitor microphone volume and trigger sound wave
+function monitorVolume() {
+    if (!micEnabled || !analyser) return;
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    function checkVolume() {
+        if (!micEnabled) return;
+
+        analyser.getByteFrequencyData(dataArray);
+
+        // Calculate average volume
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / dataArray.length;
+
+        // Trigger sound wave if volume exceeds threshold and cooldown has passed
+        const now = Date.now();
+        if (average > volumeThreshold && !soundWaveActive &&
+            now - soundWaveLastUsed > soundWaveDuration + soundWaveCooldown) {
+            triggerSoundWave();
+        }
+
+        requestAnimationFrame(checkVolume);
+    }
+
+    checkVolume();
+}
+
+// Trigger the sound wave animation
+function triggerSoundWave() {
+    if (!started || gamePaused) return;
+
+    soundWaveActive = true;
+    soundWaveStartTime = Date.now();
+    soundWaveLastUsed = soundWaveStartTime;
+}
+
+// Recalibrate microphone (adjust threshold)
+function recalibrateMicrophone() {
+    if (!micEnabled) {
+        initMicrophone();
+        return;
+    }
+
+    showToast('Recalibrating... Speak at normal volume', 2000);
+
+    if (!analyser) return;
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const samples = [];
+
+    // Collect volume samples for 2 seconds
+    const sampleInterval = setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        samples.push(sum / dataArray.length);
+    }, 100);
+
+    setTimeout(() => {
+        clearInterval(sampleInterval);
+        if (samples.length > 0) {
+            const avgVolume = samples.reduce((a, b) => a + b) / samples.length;
+            volumeThreshold = avgVolume * 1.5; // Set threshold to 1.5x average
+            showToast(`Calibrated! Threshold set to ${volumeThreshold.toFixed(1)}`, 2000);
+        }
+    }, 2000);
 }
 
 // Helper to set paused state and show/hide pause overlay (don't show pause overlay if win overlay is visible)
@@ -278,6 +391,57 @@ function draw() {
     ctx.fill();
     ctx.closePath();
 
+    // Draw ability cooldown indicator (purple filling circle)
+    const timeSinceLastWave = now - soundWaveLastUsed;
+    const totalCooldownTime = soundWaveDuration + soundWaveCooldown;
+    if (soundWaveLastUsed > 0 && timeSinceLastWave < totalCooldownTime) {
+        // Calculate cooldown progress (0 to 1)
+        const cooldownProgress = timeSinceLastWave / totalCooldownTime;
+
+        // Draw expanding purple circle from center
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius * cooldownProgress, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(147, 51, 234, 0.5)'; // Purple with 50% transparency
+        ctx.fill();
+        ctx.closePath();
+        ctx.restore();
+    }
+
+    // Check if sound wave is active and calculate its radius
+    let soundWaveRadius = 0;
+    if (soundWaveActive) {
+        const elapsed = now - soundWaveStartTime;
+        if (elapsed < soundWaveDuration) {
+            // Sound wave is expanding
+            soundWaveRadius = (elapsed / soundWaveDuration) * soundWaveMaxRadius;
+        } else {
+            // Sound wave animation complete
+            soundWaveActive = false;
+            soundWaveRadius = 0;
+        }
+    }
+
+    // Draw sound wave if active
+    if (soundWaveActive && soundWaveRadius > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, soundWaveRadius, 0, Math.PI * 2);
+        // Create gradient effect for the wave
+        const gradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, soundWaveRadius);
+        gradient.addColorStop(0, 'rgba(0, 200, 255, 0)');
+        gradient.addColorStop(0.7, 'rgba(0, 200, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 200, 255, 0.6)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        // Draw outer ring
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.closePath();
+        ctx.restore();
+    }
+
     // Enemies
     const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
 
@@ -290,7 +454,8 @@ function draw() {
         const dy = player.y - (enemy.y + enemySize / 2);
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist <= revealRadius) {
+        // Reveal enemy if within normal reveal radius OR within sound wave
+        if (dist <= revealRadius || (soundWaveActive && dist <= soundWaveRadius)) {
             enemy.visible = true;
             enemy.lastRevealed = now;
         }
@@ -676,3 +841,13 @@ if (resumeButton) {
         updateHUD();
     });
 }
+
+// Wire up recalibrate microphone button
+if (recalibButton) {
+    recalibButton.addEventListener('click', () => {
+        recalibrateMicrophone();
+    });
+}
+
+// Initialize microphone on page load
+initMicrophone();
