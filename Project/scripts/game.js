@@ -157,8 +157,17 @@ function recalibrateMicrophone() {
         clearInterval(sampleInterval);
         if (samples.length > 0) {
             const avgVolume = samples.reduce((a, b) => a + b) / samples.length;
-            volumeThreshold = avgVolume * 1.5; // Set threshold to 1.5x average
-            showToast(`Calibrated! Threshold set to ${volumeThreshold.toFixed(1)}`, 2000);
+            const calculatedThreshold = avgVolume * 1.5; // Set threshold to 1.5x average
+            const minThreshold = 60; // Minimum threshold to prevent too-sensitive calibration
+
+            // Use the higher of calculated threshold or minimum threshold
+            volumeThreshold = Math.max(calculatedThreshold, minThreshold);
+
+            if (calculatedThreshold < minThreshold) {
+                showToast(`Too quiet! Using minimum threshold ${minThreshold}`, 2500);
+            } else {
+                showToast(`Calibrated! Threshold set to ${volumeThreshold.toFixed(1)}`, 2000);
+            }
         }
     }, 2000);
 }
