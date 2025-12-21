@@ -158,7 +158,7 @@ function recalibrateMicrophone() {
         if (samples.length > 0) {
             const avgVolume = samples.reduce((a, b) => a + b) / samples.length;
             const calculatedThreshold = avgVolume * 1.5; // Set threshold to 1.5x average
-            const minThreshold = 60; // Minimum threshold to prevent too-sensitive calibration
+            const minThreshold = 45; // Minimum threshold to prevent too-sensitive calibration
 
             // Use the higher of calculated threshold or minimum threshold
             volumeThreshold = Math.max(calculatedThreshold, minThreshold);
