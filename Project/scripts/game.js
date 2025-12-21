@@ -16,6 +16,7 @@ const recalibButton = document.getElementById('recalibButton');
 let gamePaused = true;
 let started = false;
 let nextLevelIndex = null;
+let walls = [];
 
 // Audio
 const deathSound = new Audio('./assets/death.mp3');
@@ -117,6 +118,28 @@ function monitorVolume() {
         requestAnimationFrame(checkVolume);
     }
 
+    // Walls (obstacles) - reveal them same as enemies using revealRadius / sound wave
+    walls.forEach(wall => {
+        // find nearest point distance from player to rectangle
+        const closestX = Math.max(wall.x, Math.min(player.x, wall.x + wall.width));
+        const closestY = Math.max(wall.y, Math.min(player.y, wall.y + wall.height));
+        const dx = player.x - closestX;
+        const dy = player.y - closestY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= revealRadius || (soundWaveActive && dist <= soundWaveRadius)) {
+            wall.visible = true;
+            wall.lastRevealed = now;
+        }
+
+        if (wall.visible && now - wall.lastRevealed <= revealTime) {
+            ctx.fillStyle = 'rgba(200,200,200,0.95)';
+            ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            ctx.strokeStyle = 'rgba(150,150,150,1)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+        }
+    });
+
     checkVolume();
 }
 
@@ -195,6 +218,23 @@ function updateHUD() {
     if (deathCounterElement) deathCounterElement.innerText = deathCount;
 }
 
+// Helper: circle-rect collision (player circle vs wall rect)
+function circleRectCollision(cx, cy, r, rect) {
+    const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
+    const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return (dx * dx + dy * dy) <= (r * r);
+}
+
+// Helper: test whether a proposed player center (x,y) would collide any wall
+function wouldCollideWithWalls(x, y, radius) {
+    for (let w of walls) {
+        if (circleRectCollision(x, y, radius, w)) return true;
+    }
+    return false;
+}
+
 // initialize HUD display
 updateHUD();
 
@@ -240,113 +280,174 @@ const goalAreaColor = 'rgba(255, 193, 7, 0.25)'; // yellow-ish
 
 // Levels setup with positions, movement, visibility
 const levels = [
-    // Level 1 - horizontal lanes, 5 enemies
-    [
-        { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 200, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 350, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+    // Level 1 - horizontal lanes with a blocking wall
+    {
+        enemies: [
+            { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 200, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 350, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
 
-        { x: 50, y: 200, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 200, y: 200, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
-    ],
+            { x: 50, y: 200, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 200, y: 200, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 120, y: 140, width: 560, height: 12, visible: false, lastRevealed: 0 },
+            { x: 380, y: 60, width: 12, height: 80, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-    // Level 2 - vertical lanes, 6 enemies
-    [
-        { x: 150, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 150, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 150, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+    // Level 2 - vertical lanes with a vertical wall
+    {
+        enemies: [
+            { x: 150, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 150, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 150, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
 
-        { x: 300, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 300, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 300, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
-    ],
+            { x: 300, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 300, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 300, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 240, y: 20, width: 12, height: 300, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-    // Level 3 - mix of horizontal and vertical lanes
-    [
-        { x: 50, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 200, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+    // Level 3 - central barrier with two pillars
+    {
+        enemies: [
+            { x: 50, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 200, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 400, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 600, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 180, y: 140, width: 440, height: 12, visible: false, lastRevealed: 0 },
+            { x: 340, y: 40, width: 12, height: 40, visible: false, lastRevealed: 0 },
+            { x: 460, y: 140, width: 12, height: 40, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-        { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 400, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+    // Level 4 - staggered small pillars forming corridors
+    {
+        enemies: [
+            { x: 50, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 180, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 310, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 440, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 570, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 140, y: 30, width: 16, height: 60, visible: false, lastRevealed: 0 },
+            { x: 260, y: 100, width: 16, height: 60, visible: false, lastRevealed: 0 },
+            { x: 380, y: 30, width: 16, height: 60, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-        { x: 600, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
-    ],
+    // Level 5 - vertical lanes with alternating horizontal blockers
+    {
+        enemies: [
+            { x: 120, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 120, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 120, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 300, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 300, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 60, y: 110, width: 120, height: 10, visible: false, lastRevealed: 0 },
+            { x: 260, y: 170, width: 120, height: 10, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-    // Level 4 - horizontal lanes, tighter spacing
-    [
-        { x: 50, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 180, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 310, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 440, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 570, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
-    ],
+    // Level 6 - diagonal flowing enemies with staircase walls
+    {
+        enemies: [
+            { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 400, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 500, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 120, y: 80, width: 12, height: 60, visible: false, lastRevealed: 0 },
+            { x: 200, y: 140, width: 12, height: 60, visible: false, lastRevealed: 0 },
+            { x: 280, y: 80, width: 12, height: 60, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-    // Level 5 - vertical lanes with staggered x
-    [
-        { x: 120, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 120, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 120, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+    // Level 7 - U-shaped wall guarding the goal side
+    {
+        enemies: [
+            { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 200, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 400, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 600, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 480, y: 20, width: 12, height: 180, visible: false, lastRevealed: 0 },
+            { x: 360, y: 20, width: 12, height: 180, visible: false, lastRevealed: 0 },
+            { x: 360, y: 20, width: 132, height: 12, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-        { x: 300, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 300, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
-    ],
+    // Level 8 - center maze corridor
+    {
+        enemies: [
+            { x: 50, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 150, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 250, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 350, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 450, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 550, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 260, y: 20, width: 12, height: 160, visible: false, lastRevealed: 0 },
+            { x: 340, y: 60, width: 12, height: 160, visible: false, lastRevealed: 0 },
+            { x: 300, y: 100, width: 80, height: 12, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-    // Level 6 - diagonal lanes
-    [
-        { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+    // Level 9 - tighter vertical with narrow passages
+    {
+        enemies: [
+            { x: 100, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 100, y: 120, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 100, y: 190, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 200, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 200, y: 120, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 140, y: 0, width: 12, height: 220, visible: false, lastRevealed: 0 },
+            { x: 260, y: 80, width: 12, height: 220, visible: false, lastRevealed: 0 }
+        ]
+    },
 
-        { x: 400, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 500, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 }
-    ],
-
-    // Level 7 - mix horizontal and vertical lanes
-    [
-        { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 200, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-
-        { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 400, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-
-        { x: 600, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
-    ],
-
-    // Level 8 - horizontal lines, more enemies
-    [
-        { x: 50, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 150, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 250, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 350, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 450, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 550, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
-    ],
-
-    // Level 9 - vertical lanes, tighter spacing
-    [
-        { x: 100, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 100, y: 120, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 100, y: 190, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 200, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 200, y: 120, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
-    ],
-
-    // Level 10 - mix diagonal and horizontal
-    [
-        { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-        { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-
-        { x: 400, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-        { x: 500, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
-    ]
+    // Level 10 - mixed with boxed center
+    {
+        enemies: [
+            { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 400, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 500, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+        ],
+        walls: [
+            { x: 300, y: 40, width: 12, height: 140, visible: false, lastRevealed: 0 },
+            { x: 380, y: 40, width: 12, height: 140, visible: false, lastRevealed: 0 },
+            { x: 300, y: 40, width: 92, height: 12, visible: false, lastRevealed: 0 },
+            { x: 300, y: 172, width: 92, height: 12, visible: false, lastRevealed: 0 }
+        ]
+    }
 ];
 
 
 // Random starting level
 let currentLevel = Math.floor(Math.random() * levels.length);
-// Use a deep copy so original level definitions remain unchanged when enemies move
-let enemies = JSON.parse(JSON.stringify(levels[currentLevel]));
+// Initialize enemies and walls for the selected level
+let enemies = [];
+walls = [];
+resetLevel(currentLevel);
 
 // Goal (flag image)
 const goalImage = new Image();
@@ -513,6 +614,26 @@ function updateEnemies() {
             enemy.y = oldY; // Reset to old position to prevent getting stuck
         }
 
+        // Check wall collisions for enemies (AABB collision)
+        for (let w of walls) {
+            const enemyLeft = enemy.x;
+            const enemyRight = enemy.x + enemySize;
+            const enemyTop = enemy.y;
+            const enemyBottom = enemy.y + enemySize;
+            const wallLeft = w.x;
+            const wallRight = w.x + w.width;
+            const wallTop = w.y;
+            const wallBottom = w.y + w.height;
+            if (!(enemyRight < wallLeft || enemyLeft > wallRight || enemyBottom < wallTop || enemyTop > wallBottom)) {
+                // collision: reverse direction and revert
+                enemy.vx *= -1;
+                enemy.vy *= -1;
+                enemy.x = oldX;
+                enemy.y = oldY;
+                break;
+            }
+        }
+
         // Check spawn area collision (AABB collision detection)
         const enemyLeft = enemy.x;
         const enemyRight = enemy.x + enemySize;
@@ -614,7 +735,17 @@ function checkCollisions() {
 // Reset to a level (deep copy enemy definitions) and reset player position
 function resetLevel(levelIndex) {
     currentLevel = levelIndex;
-    enemies = JSON.parse(JSON.stringify(levels[currentLevel]));
+    // Support legacy array-based levels or object-based with enemies/walls
+    const lvl = levels[currentLevel];
+    if (Array.isArray(lvl)) {
+        enemies = JSON.parse(JSON.stringify(lvl));
+        walls = [];
+    } else {
+        enemies = JSON.parse(JSON.stringify(lvl.enemies || []));
+        walls = JSON.parse(JSON.stringify(lvl.walls || []));
+        // initialize visibility metadata for walls
+        walls.forEach(w => { w.visible = w.visible || false; w.lastRevealed = w.lastRevealed || 0; });
+    }
     player.x = player.startX;
     player.y = player.startY;
     // allow victory sound to play again on this new level
@@ -739,16 +870,20 @@ function updatePlayerMovement() {
 
     // Apply movement based on held keys
     if (keys.left) {
-        player.x = Math.max(minX, player.x - player.speed);
+        const newX = Math.max(minX, player.x - player.speed);
+        if (!wouldCollideWithWalls(newX, player.y, player.radius)) player.x = newX;
     }
     if (keys.right) {
-        player.x = Math.min(maxX, player.x + player.speed);
+        const newX = Math.min(maxX, player.x + player.speed);
+        if (!wouldCollideWithWalls(newX, player.y, player.radius)) player.x = newX;
     }
     if (keys.up) {
-        player.y = Math.max(minY, player.y - player.speed);
+        const newY = Math.max(minY, player.y - player.speed);
+        if (!wouldCollideWithWalls(player.x, newY, player.radius)) player.y = newY;
     }
     if (keys.down) {
-        player.y = Math.min(maxY, player.y + player.speed);
+        const newY = Math.min(maxY, player.y + player.speed);
+        if (!wouldCollideWithWalls(player.x, newY, player.radius)) player.y = newY;
     }
 }
 
