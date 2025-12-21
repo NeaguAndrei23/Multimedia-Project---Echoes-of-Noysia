@@ -118,28 +118,6 @@ function monitorVolume() {
         requestAnimationFrame(checkVolume);
     }
 
-    // Walls (obstacles) - reveal them same as enemies using revealRadius / sound wave
-    walls.forEach(wall => {
-        // find nearest point distance from player to rectangle
-        const closestX = Math.max(wall.x, Math.min(player.x, wall.x + wall.width));
-        const closestY = Math.max(wall.y, Math.min(player.y, wall.y + wall.height));
-        const dx = player.x - closestX;
-        const dy = player.y - closestY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist <= revealRadius || (soundWaveActive && dist <= soundWaveRadius)) {
-            wall.visible = true;
-            wall.lastRevealed = now;
-        }
-
-        if (wall.visible && now - wall.lastRevealed <= revealTime) {
-            ctx.fillStyle = 'rgba(200,200,200,0.95)';
-            ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-            ctx.strokeStyle = 'rgba(150,150,150,1)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
-        }
-    });
-
     checkVolume();
 }
 
@@ -291,8 +269,8 @@ const levels = [
             { x: 200, y: 200, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 120, y: 140, width: 560, height: 12, visible: false, lastRevealed: 0 },
-            { x: 380, y: 60, width: 12, height: 80, visible: false, lastRevealed: 0 }
+            { x: 200, y: 135, width: 300, height: 35, visible: false, lastRevealed: 0 },
+            { x: 520, y: 60, width: 35, height: 90, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -308,23 +286,25 @@ const levels = [
             { x: 300, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 240, y: 20, width: 12, height: 300, visible: false, lastRevealed: 0 }
+            { x: 200, y: 30, width: 40, height: 160, visible: false, lastRevealed: 0 },
+            { x: 360, y: 100, width: 40, height: 180, visible: false, lastRevealed: 0 },
+            { x: 520, y: 40, width: 40, height: 140, visible: false, lastRevealed: 0 }
         ]
     },
 
     // Level 3 - central barrier with two pillars
     {
         enemies: [
-            { x: 50, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 200, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 180, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
             { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
             { x: 400, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 600, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+            { x: 600, y: 180, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 180, y: 140, width: 440, height: 12, visible: false, lastRevealed: 0 },
-            { x: 340, y: 40, width: 12, height: 40, visible: false, lastRevealed: 0 },
-            { x: 460, y: 140, width: 12, height: 40, visible: false, lastRevealed: 0 }
+            { x: 220, y: 130, width: 320, height: 40, visible: false, lastRevealed: 0 },
+            { x: 140, y: 50, width: 35, height: 90, visible: false, lastRevealed: 0 },
+            { x: 560, y: 170, width: 120, height: 35, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -338,9 +318,9 @@ const levels = [
             { x: 570, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 140, y: 30, width: 16, height: 60, visible: false, lastRevealed: 0 },
-            { x: 260, y: 100, width: 16, height: 60, visible: false, lastRevealed: 0 },
-            { x: 380, y: 30, width: 16, height: 60, visible: false, lastRevealed: 0 }
+            { x: 180, y: 40, width: 38, height: 100, visible: false, lastRevealed: 0 },
+            { x: 340, y: 120, width: 38, height: 100, visible: false, lastRevealed: 0 },
+            { x: 500, y: 50, width: 38, height: 110, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -354,8 +334,9 @@ const levels = [
             { x: 300, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 60, y: 110, width: 120, height: 10, visible: false, lastRevealed: 0 },
-            { x: 260, y: 170, width: 120, height: 10, visible: false, lastRevealed: 0 }
+            { x: 80, y: 90, width: 180, height: 35, visible: false, lastRevealed: 0 },
+            { x: 340, y: 160, width: 180, height: 35, visible: false, lastRevealed: 0 },
+            { x: 580, y: 50, width: 35, height: 150, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -363,15 +344,15 @@ const levels = [
     {
         enemies: [
             { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 400, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 120, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 220, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 350, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
             { x: 500, y: 100, vx: 1, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 120, y: 80, width: 12, height: 60, visible: false, lastRevealed: 0 },
-            { x: 200, y: 140, width: 12, height: 60, visible: false, lastRevealed: 0 },
-            { x: 280, y: 80, width: 12, height: 60, visible: false, lastRevealed: 0 }
+            { x: 160, y: 60, width: 38, height: 120, visible: false, lastRevealed: 0 },
+            { x: 280, y: 140, width: 38, height: 120, visible: false, lastRevealed: 0 },
+            { x: 420, y: 30, width: 160, height: 35, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -380,14 +361,14 @@ const levels = [
         enemies: [
             { x: 50, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
             { x: 200, y: 100, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 400, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 400, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 600, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+            { x: 290, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 290, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 550, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 480, y: 20, width: 12, height: 180, visible: false, lastRevealed: 0 },
-            { x: 360, y: 20, width: 12, height: 180, visible: false, lastRevealed: 0 },
-            { x: 360, y: 20, width: 132, height: 12, visible: false, lastRevealed: 0 }
+            { x: 450, y: 20, width: 40, height: 200, visible: false, lastRevealed: 0 },
+            { x: 340, y: 20, width: 40, height: 200, visible: false, lastRevealed: 0 },
+            { x: 340, y: 20, width: 150, height: 40, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -396,15 +377,15 @@ const levels = [
         enemies: [
             { x: 50, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
             { x: 150, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 250, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 350, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 450, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 550, y: 120, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+            { x: 300, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 450, y: 60, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 150, y: 180, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 500, y: 180, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 260, y: 20, width: 12, height: 160, visible: false, lastRevealed: 0 },
-            { x: 340, y: 60, width: 12, height: 160, visible: false, lastRevealed: 0 },
-            { x: 300, y: 100, width: 80, height: 12, visible: false, lastRevealed: 0 }
+            { x: 240, y: 30, width: 40, height: 180, visible: false, lastRevealed: 0 },
+            { x: 380, y: 80, width: 40, height: 180, visible: false, lastRevealed: 0 },
+            { x: 240, y: 110, width: 180, height: 40, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -418,25 +399,25 @@ const levels = [
             { x: 200, y: 120, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 140, y: 0, width: 12, height: 220, visible: false, lastRevealed: 0 },
-            { x: 260, y: 80, width: 12, height: 220, visible: false, lastRevealed: 0 }
+            { x: 180, y: 0, width: 40, height: 170, visible: false, lastRevealed: 0 },
+            { x: 340, y: 90, width: 40, height: 210, visible: false, lastRevealed: 0 },
+            { x: 500, y: 40, width: 40, height: 160, visible: false, lastRevealed: 0 }
         ]
     },
 
-    // Level 10 - mixed with boxed center
+    // Level 10 - L-shaped corner challenge
     {
         enemies: [
             { x: 50, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 150, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 250, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 400, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 500, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+            { x: 120, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 300, y: 50, vx: 1, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 460, y: 50, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 500, y: 180, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
         ],
         walls: [
-            { x: 300, y: 40, width: 12, height: 140, visible: false, lastRevealed: 0 },
-            { x: 380, y: 40, width: 12, height: 140, visible: false, lastRevealed: 0 },
-            { x: 300, y: 40, width: 92, height: 12, visible: false, lastRevealed: 0 },
-            { x: 300, y: 172, width: 92, height: 12, visible: false, lastRevealed: 0 }
+            { x: 200, y: 80, width: 240, height: 40, visible: false, lastRevealed: 0 },
+            { x: 400, y: 80, width: 40, height: 180, visible: false, lastRevealed: 0 },
+            { x: 520, y: 140, width: 140, height: 40, visible: false, lastRevealed: 0 }
         ]
     }
 ];
@@ -555,6 +536,33 @@ function draw() {
     // Enemies
     const invincible = player.respawnedAt && now - player.respawnedAt < player.respawnFlashDuration;
 
+    // Draw walls (only visible when revealed by voice OR during invincibility)
+    walls.forEach(wall => {
+        // Calculate distance from player to nearest point of wall
+        const closestX = Math.max(wall.x, Math.min(player.x, wall.x + wall.width));
+        const closestY = Math.max(wall.y, Math.min(player.y, wall.y + wall.height));
+        const dx = player.x - closestX;
+        const dy = player.y - closestY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Reveal wall ONLY if within sound wave (voice activation only)
+        if (soundWaveActive && dist <= soundWaveRadius) {
+            wall.visible = true;
+            wall.lastRevealed = now;
+        }
+
+        // Draw wall if visible within reveal time OR if player is invincible
+        if ((wall.visible && now - wall.lastRevealed <= revealTime) || invincible) {
+            // Softer, darker color to blend with environment
+            ctx.fillStyle = 'rgba(70, 75, 80, 0.85)';
+            ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            // Subtle border for definition
+            ctx.strokeStyle = 'rgba(90, 95, 100, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+        }
+    });
+
     // Update animation frame for sprite oscillation
     const spritePhase = Math.floor(now / enemySpriteAnimationSpeed) % 2;
     const currentEnemySprite = spritePhase === 0 ? enemySprite1 : enemySprite2;
@@ -564,8 +572,8 @@ function draw() {
         const dy = player.y - (enemy.y + enemySize / 2);
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Reveal enemy if within normal reveal radius OR within sound wave
-        if (dist <= revealRadius || (soundWaveActive && dist <= soundWaveRadius)) {
+        // Reveal enemy ONLY if within sound wave (voice activation only)
+        if (soundWaveActive && dist <= soundWaveRadius) {
             enemy.visible = true;
             enemy.lastRevealed = now;
         }
@@ -624,12 +632,28 @@ function updateEnemies() {
             const wallRight = w.x + w.width;
             const wallTop = w.y;
             const wallBottom = w.y + w.height;
+
             if (!(enemyRight < wallLeft || enemyLeft > wallRight || enemyBottom < wallTop || enemyTop > wallBottom)) {
-                // collision: reverse direction and revert
-                enemy.vx *= -1;
-                enemy.vy *= -1;
-                enemy.x = oldX;
-                enemy.y = oldY;
+                // Collision detected - calculate overlap on each side
+                const overlapLeft = enemyRight - wallLeft;
+                const overlapRight = wallRight - enemyLeft;
+                const overlapTop = enemyBottom - wallTop;
+                const overlapBottom = wallBottom - enemyTop;
+
+                // Find minimum overlap to determine collision direction
+                const minOverlapX = Math.min(overlapLeft, overlapRight);
+                const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+                // Resolve collision based on smallest overlap
+                if (minOverlapX < minOverlapY) {
+                    // Horizontal collision - reverse horizontal velocity only
+                    enemy.vx *= -1;
+                    enemy.x = oldX;
+                } else {
+                    // Vertical collision - reverse vertical velocity only
+                    enemy.vy *= -1;
+                    enemy.y = oldY;
+                }
                 break;
             }
         }
