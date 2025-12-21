@@ -564,8 +564,8 @@ function draw() {
         const dy = player.y - (enemy.y + enemySize / 2);
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Reveal enemy if within normal reveal radius OR within sound wave
-        if (dist <= revealRadius || (soundWaveActive && dist <= soundWaveRadius)) {
+        // Reveal enemy ONLY if within sound wave
+        if (soundWaveActive && dist <= soundWaveRadius) {
             enemy.visible = true;
             enemy.lastRevealed = now;
         }
@@ -580,6 +580,31 @@ function draw() {
                 ctx.fillStyle = 'red';
                 ctx.fillRect(enemy.x, enemy.y, enemySize, enemySize);
             }
+        }
+    });
+
+    // Walls (obstacles) - reveal them ONLY with sound wave
+    walls.forEach(wall => {
+        // Find nearest point distance from player to rectangle
+        const closestX = Math.max(wall.x, Math.min(player.x, wall.x + wall.width));
+        const closestY = Math.max(wall.y, Math.min(player.y, wall.y + wall.height));
+        const dx = player.x - closestX;
+        const dy = player.y - closestY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Reveal wall ONLY if within sound wave
+        if (soundWaveActive && dist <= soundWaveRadius) {
+            wall.visible = true;
+            wall.lastRevealed = now;
+        }
+
+        // Draw wall if visible within reveal time OR if player is invincible
+        if ((wall.visible && now - wall.lastRevealed <= revealTime) || invincible) {
+            ctx.fillStyle = 'rgba(240, 240, 240, 0.95)';
+            ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            ctx.strokeStyle = 'rgba(200, 200, 200, 1)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
         }
     });
 
