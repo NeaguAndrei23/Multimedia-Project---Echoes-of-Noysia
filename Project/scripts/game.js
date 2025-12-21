@@ -312,10 +312,10 @@ const levels = [
     {
         enemies: [
             { x: 50, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 180, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 310, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 440, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
-            { x: 570, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
+            { x: 130, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 250, y: 80, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 400, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 },
+            { x: 560, y: 150, vx: 1, vy: 0, visible: false, lastRevealed: 0 }
         ],
         walls: [
             { x: 180, y: 40, width: 38, height: 100, visible: false, lastRevealed: 0 },
@@ -327,11 +327,11 @@ const levels = [
     // Level 5 - vertical lanes with alternating horizontal blockers
     {
         enemies: [
-            { x: 120, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 120, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 120, y: 250, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 300, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
-            { x: 300, y: 200, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
+            { x: 40, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 40, y: 150, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 270, y: 50, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 270, y: 220, vx: 0, vy: 1, visible: false, lastRevealed: 0 },
+            { x: 530, y: 100, vx: 0, vy: 1, visible: false, lastRevealed: 0 }
         ],
         walls: [
             { x: 80, y: 90, width: 180, height: 35, visible: false, lastRevealed: 0 },
