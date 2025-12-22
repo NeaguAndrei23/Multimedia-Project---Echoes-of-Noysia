@@ -201,8 +201,8 @@ if (skipIntroButton) {
 function setPaused(paused) {
     gamePaused = paused;
 
-    // Control background video based on pause state
-    if (backgroundVideo) {
+    // Control background video based on pause state - only if game has started
+    if (backgroundVideo && started) {
         if (paused) {
             backgroundVideo.pause();
         } else {
