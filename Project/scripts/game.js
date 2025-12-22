@@ -1,6 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Video controls
+const introOverlay = document.getElementById('introOverlay');
+const introVideo = document.getElementById('introVideo');
+const skipIntroButton = document.getElementById('skipIntroButton');
+const backgroundVideo = document.getElementById('backgroundVideo');
+
 // HUD & controls
 let deathCount = 0;
 const deathCounterElement = document.getElementById('deathCount');
@@ -173,9 +179,37 @@ function recalibrateMicrophone() {
     }, 2000);
 }
 
+// Function to hide intro and show game
+function hideIntro() {
+    if (introOverlay) {
+        introOverlay.style.display = 'none';
+    }
+}
+
+// Intro video event listeners
+if (introVideo) {
+    // Hide intro when video ends
+    introVideo.addEventListener('ended', hideIntro);
+}
+
+if (skipIntroButton) {
+    // Skip intro when button is clicked
+    skipIntroButton.addEventListener('click', hideIntro);
+}
+
 // Helper to set paused state and show/hide pause overlay (don't show pause overlay if win overlay is visible)
 function setPaused(paused) {
     gamePaused = paused;
+
+    // Control background video based on pause state
+    if (backgroundVideo) {
+        if (paused) {
+            backgroundVideo.pause();
+        } else {
+            backgroundVideo.play().catch(() => {});
+        }
+    }
+
     if (paused) {
         if (winOverlay && winOverlay.style.display === 'flex') {
             if (pauseOverlay) pauseOverlay.style.display = 'none';
