@@ -89,10 +89,20 @@ async function initMicrophone() {
 
         // Start monitoring volume
         monitorVolume();
+
+        // Resume intro video if it was paused by the permission dialog
+        if (introVideo && introVideo.paused) {
+            introVideo.play().catch(err => console.log('Video play failed:', err));
+        }
     } catch (error) {
         console.error('Microphone access denied:', error);
         showToast('Microphone access denied. Please allow microphone access.', 3000);
         micEnabled = false;
+
+        // Resume intro video even if mic permission was denied
+        if (introVideo && introVideo.paused) {
+            introVideo.play().catch(err => console.log('Video play failed:', err));
+        }
     }
 }
 
@@ -304,7 +314,7 @@ const levels = [
         ],
         walls: [
             { x: 200, y: 135, width: 300, height: 35, visible: false, lastRevealed: 0 },
-            { x: 520, y: 60, width: 35, height: 90, visible: false, lastRevealed: 0 }
+            { x: 520, y: 180, width: 35, height: 90, visible: false, lastRevealed: 0 }  // Moved down to avoid saw path
         ]
     },
 
