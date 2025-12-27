@@ -250,6 +250,13 @@ function recalibrateMicrophone() {
 
 // Function to hide intro and show game
 function hideIntro() {
+    // Stop and mute the video
+    if (introVideo) {
+        introVideo.pause();
+        introVideo.currentTime = 0;
+        introVideo.muted = true;
+    }
+
     if (introOverlay) {
         introOverlay.style.display = 'none';
     }
