@@ -256,6 +256,18 @@ function hideIntro() {
 
 // Intro video event listeners
 if (introVideo) {
+    // Try to play with sound - if blocked, fall back to muted autoplay
+    introVideo.muted = false;
+    const playPromise = introVideo.play();
+
+    if (playPromise !== undefined) {
+        playPromise.catch(() => {
+            // Autoplay with sound was blocked, play muted instead
+            introVideo.muted = true;
+            introVideo.play().catch(() => {});
+        });
+    }
+
     // Hide intro when video ends
     introVideo.addEventListener('ended', hideIntro);
 }
