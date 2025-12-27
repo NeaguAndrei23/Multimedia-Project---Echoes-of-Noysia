@@ -36,6 +36,74 @@ victorySound.preload = 'auto';
 victorySound.volume = 0.4;
 const soundToggleButton = document.getElementById('soundToggleButton');
 let victoryPlayed = false;
+
+// Particle system for victory animation
+let particles = [];
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8 - 2; // slight upward bias
+        this.radius = Math.random() * 3 + 2;
+        this.color = color;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.015 + 0.01;
+        this.gravity = 0.15;
+    }
+
+    update() {
+        this.vx *= 0.99; // air resistance
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Add glow effect
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    isDead() {
+        return this.alpha <= 0;
+    }
+}
+
+function createVictoryExplosion(x, y) {
+    const colors = [
+        '#FFD700', // gold
+        '#FFA500', // orange
+        '#FF6347', // tomato
+        '#FF1493', // deep pink
+        '#00CED1', // dark turquoise
+        '#32CD32', // lime green
+        '#9370DB', // medium purple
+        '#FFFF00'  // yellow
+    ];
+
+    // Create multiple bursts for fireworks effect
+    for (let burst = 0; burst < 3; burst++) {
+        setTimeout(() => {
+            for (let i = 0; i < 50; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particles.push(new Particle(x, y, color));
+            }
+        }, burst * 150);
+    }
+}
+
 const toastElement = document.getElementById('toast');
 let toastTimeout = null;
 
@@ -89,20 +157,10 @@ async function initMicrophone() {
 
         // Start monitoring volume
         monitorVolume();
-
-        // Resume intro video if it was paused by the permission dialog
-        if (introVideo && introVideo.paused) {
-            introVideo.play().catch(err => console.log('Video play failed:', err));
-        }
     } catch (error) {
         console.error('Microphone access denied:', error);
         showToast('Microphone access denied. Please allow microphone access.', 3000);
         micEnabled = false;
-
-        // Resume intro video even if mic permission was denied
-        if (introVideo && introVideo.paused) {
-            introVideo.play().catch(err => console.log('Video play failed:', err));
-        }
     }
 }
 
@@ -314,7 +372,7 @@ const levels = [
         ],
         walls: [
             { x: 200, y: 135, width: 300, height: 35, visible: false, lastRevealed: 0 },
-            { x: 520, y: 180, width: 35, height: 90, visible: false, lastRevealed: 0 }  // Moved down to avoid saw path
+            { x: 520, y: 60, width: 35, height: 90, visible: false, lastRevealed: 0 }
         ]
     },
 
@@ -662,6 +720,9 @@ function draw() {
 
     // Draw goal image
     ctx.drawImage(goalImage, goal.x, goal.y, goal.width, goal.height);
+
+    // Draw particles (victory animation)
+    particles.forEach(p => p.draw(ctx));
 }
 
 // Update enemy positions
@@ -820,6 +881,10 @@ function checkCollisions() {
                 // ignore
             }
         }
+        // Trigger victory particle explosion at goal center
+        if (!victoryPlayed) {
+            createVictoryExplosion(goal.x + goal.width / 2, goal.y + goal.height / 2);
+        }
         victoryPlayed = true;
         setPaused(true);
     }
@@ -843,6 +908,8 @@ function resetLevel(levelIndex) {
     player.y = player.startY;
     // allow victory sound to play again on this new level
     victoryPlayed = false;
+    // Clear any remaining particles
+    particles = [];
 }
 
 // Keyboard input handlers
@@ -989,7 +1056,16 @@ function animate() {
         updateEnemies();
         checkCollisions();
     }
+    // Update particles even when paused so victory animation continues
+    updateParticles();
     requestAnimationFrame(animate);
+}
+
+function updateParticles() {
+    // Update all particles
+    particles.forEach(p => p.update());
+    // Remove dead particles
+    particles = particles.filter(p => !p.isDead());
 }
 
 // Ensure flag image loads first
