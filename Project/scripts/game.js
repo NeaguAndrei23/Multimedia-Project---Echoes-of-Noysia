@@ -4,6 +4,7 @@ const ctx = canvas.getContext('2d');
 // Video controls
 const introOverlay = document.getElementById('introOverlay');
 const introVideo = document.getElementById('introVideo');
+const playIntroButton = document.getElementById('playIntroButton');
 const skipIntroButton = document.getElementById('skipIntroButton');
 const backgroundVideo = document.getElementById('backgroundVideo');
 
@@ -256,20 +257,19 @@ function hideIntro() {
 
 // Intro video event listeners
 if (introVideo) {
-    // Try to play with sound - if blocked, fall back to muted autoplay
-    introVideo.muted = false;
-    const playPromise = introVideo.play();
-
-    if (playPromise !== undefined) {
-        playPromise.catch(() => {
-            // Autoplay with sound was blocked, play muted instead
-            introVideo.muted = true;
-            introVideo.play().catch(() => {});
-        });
-    }
-
     // Hide intro when video ends
     introVideo.addEventListener('ended', hideIntro);
+}
+
+// Play intro with sound when button is clicked
+if (playIntroButton) {
+    playIntroButton.addEventListener('click', () => {
+        if (introVideo) {
+            introVideo.muted = false; // Video will play with sound
+            introVideo.play().catch(err => console.log('Video play failed:', err));
+            playIntroButton.classList.add('hidden'); // Hide the play button
+        }
+    });
 }
 
 if (skipIntroButton) {

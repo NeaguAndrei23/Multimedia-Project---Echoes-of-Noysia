@@ -27,6 +27,33 @@ body {
     object-fit: cover;
 }
 
+#playIntroButton {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 2002;
+    padding: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.9;
+}
+
+#playIntroButton:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+}
+
+#playIntroButton svg {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+}
+
+#playIntroButton.hidden {
+    display: none;
+}
+
 #skipIntroButton {
     position: absolute;
     bottom: 40px;
